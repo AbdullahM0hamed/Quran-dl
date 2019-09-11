@@ -1,4 +1,4 @@
-         **Python Quran Downloader**
+**Python Quran Downloader**
 
 This script downloads from https://quranicaudio.com
 
