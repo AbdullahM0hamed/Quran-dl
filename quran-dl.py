@@ -65,8 +65,7 @@ surah_names, surah_links = [i for a, i in enumerate(suwar) if  a%2 == 0], [x.par
 
 home = expanduser("~")
 
-#Checks if ~/Quran exists
-#Creates it if it doesn't
+#Creates if ~/Quran if it doesn't exist
 if not os.path.exists(f"{home}/Quran"):
   os.mkdir(f"{home}/Quran")
 
