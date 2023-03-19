@@ -8,8 +8,8 @@ import os
 import subprocess
 import sys
 
-#Method to get numeric input only
-#Non numerical inputs triggers a loop to ask for user input again
+session = requests.session()
+
 def getSelectedInput(prompt):
  try:
   choice = input(prompt)
@@ -24,60 +24,44 @@ def getSelectedInput(prompt):
    sys.exit(0)
  return int(choice)
 
-#Method to download
 def Download(file, name, location):
-  r = requests.get(file, stream=True)
+  r = session.get(file, stream=True)
   size = int(r.headers.get("content-length"))
   with open(f"{location}/{name}.mp3", "wb") as surah:
     for chunk in progress.bar(r.iter_content(chunk_size = 1024), expected_size=(size/1024) + 1):
       if chunk:
         surah.write(chunk)
 
-#Get html of quranicaudio.com and convert to BeautifulSoup format
-r = requests.get("https://quranicaudio.com/")
+r = session.get("https://quranicaudio.com/")
 soup = BeautifulSoup(r.text, "html.parser")
-
-#Find all "a" nodes of class "ttnuIA4M9MIsH3LR7pTUN"
-#E.g. <a class="ttnuIA4M9MIsH3LR7pTUN">
 qaris = soup.find_all("a", {'class':'ttnuIA4M9MIsH3LR7pTUN'})
 
-#Extract the names of reciters, and links to their pages
+for section in range(2, 5):
+    r = session.get(f"https://quranicaudio.com/section/{section}/")
+    soup = BeautifulSoup(r.text, "html.parser")
+    qaris.extend(soup.find_all("a", {"class": "ttnuIA4M9MIsH3LR7pTUN"}))
+
+
 qari_names, qari_links = [x.text for x in qaris], [x.get("href") for x in qaris]
 
-#Loop through reciters and output, so that the user can make a selection
 i = 1
 for j in qari_names:
   print(f"{i}: {j}")
   i += 1
 
-#Get choice of user
 choice = getSelectedInput("Enter Qari Number: ") - 1
-
-#Get html of the reciter's page and convert to BeautifulSoup format
-r = requests.get(f"https://quranicaudio.com{qari_links[choice]}")
+r = session.get(f"https://quranicaudio.com{qari_links[choice]}")
 soup = BeautifulSoup(r.text, "html.parser")
-
-#Find suwar on the reciter's page
 suwar = [x.find_all("span")[-1].text for x in soup.find_all("h5", {"class":"text-muted"})]
-
-#Extract names and links of suwar
 surah_names, surah_links = [i for a, i in enumerate(suwar) if  a%2 == 0], [x.parent.get("href") for x in soup.find_all("span", string=" Download")]
 
 home = expanduser("~")
-
-#Creates if ~/Quran if it doesn't exist
 if not os.path.exists(f"{home}/Quran"):
   os.mkdir(f"{home}/Quran")
 
-#Chosen Qari
 chQari = qari_names[choice]
-
-#Checks if folder exists for the chosen qari
-#and creates it if it doesn't
 if not os.path.exists(f"{home}/Quran/{chQari}"):
   os.mkdir(f"{home}/Quran/{chQari}")
 
-#Loops through the names and links of the suwar
-#and downloads them, and then triggers media scanner
 for surah_name, surah_link in zip(surah_names, surah_links):
   Download(surah_link, surah_name, f"{home}/Quran/{chQari}")
